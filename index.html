@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camino de Aprendizaje de PCA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .title-img {
+            width: calc(32px + 1cm);
+            height: calc(32px + 1cm);
+            object-fit: cover;
+            vertical-align: middle;
+            margin-right: 10px;
+            border-radius: 4px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .flow-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .level {
+            margin-bottom: 60px;
+            position: relative;
+        }
+
+        .level-title {
+            text-align: center;
+            font-size: 1.3em;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .nodes {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            position: relative;
+        }
+
+        .node {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            min-width: 200px;
+            max-width: 280px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .node:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .node.cursos {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .node.sesion {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .node.workshop {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .node-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.3);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .node-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .node-date {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-top: 8px;
+        }
+
+        .node-count {
+            font-size: 0.85em;
+            margin-top: 5px;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 8px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .connector {
+            position: absolute;
+            height: 40px;
+            width: 3px;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: -50px;
+        }
+
+        .connector::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 10px solid #764ba2;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+        }
+
+        .legend-box.cursos {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .legend-box.sesion {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .legend-box.workshop {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-title {
+            font-size: 1.8em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .modal-body {
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .close-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 1em;
+        }
+
+        .close-btn:hover {
+            background: #764ba2;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .node {
+                min-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><img src="Cycler.png" alt="Cycler" class="title-img">Camino de Aprendizaje de PCA</h1>
+        
+        <div class="flow-container">
+            <!-- Nivel 1 -->
+            <div class="level">
+                <div class="level-title">📊 Cursos Nivel 1: Dashboard de Necesidades Principales y Satisfacción</div>
+                <div class="nodes">
+                    <div class="node cursos" data-id="1">
+                        <span class="node-badge">CURSOS</span>
+                        <div class="node-title">Dashboard de Necesidades Principales y Satisfacción (Test 1)</div>
+                        <div class="node-count">📚 6 cursos</div>
+                        <div class="node-date">📅 Plazo: 10 Diciembre</div>
+                    </div>
+                </div>
+                <div class="connector"></div>
+            </div>
+
+            <!-- Nivel 2 -->
+            <div class="level">
+                <div class="nodes">
+                    <div class="node sesion" data-id="2">
+                        <span class="node-badge">SESIÓN VIRTUAL</span>
+                        <div class="node-title">Sesión Virtual de Aprendizaje I</div>
+                        <div class="node-date">📅 11 de Diciembre</div>
+                    </div>
+                </div>
+                <div class="connector"></div>
+            </div>
+
+            <!-- Nivel 3 -->
+            <div class="level">
+                <div class="level-title">📊 Cursos Nivel 2: App del Ciclo del Programa</div>
+                <div class="nodes">
+                    <div class="node cursos" data-id="3">
+                        <span class="node-badge">CURSOS</span>
+                        <div class="node-title">App del Ciclo del Programa (Test 2)</div>
+                        <div class="node-count">📚 6 cursos</div>
+                        <div class="node-date">📅 Plazo: 18 Febrero</div>
+                    </div>
+                </div>
+                <div class="connector"></div>
+            </div>
+
+            <!-- Nivel 4 -->
+            <div class="level">
+                <div class="nodes">
+                    <div class="node sesion" data-id="4">
+                        <span class="node-badge">SESIÓN VIRTUAL</span>
+                        <div class="node-title">Sesión Virtual de Aprendizaje II</div>
+                        <div class="node-date">📅 19 de Febrero</div>
+                    </div>
+                </div>
+                <div class="connector"></div>
+            </div>
+
+            <!-- Nivel 5 -->
+            <div class="level">
+                <div class="level-title"></div>
+                <div class="nodes">
+                    <div class="node workshop" data-id="5">
+                        <span class="node-badge">WORKSHOP I</span>
+                        <div class="node-title">WORKSHOP I Planificación de la FCP y Monitoreo</div>
+                        <div class="node-date">📅 10 al 13 de Marzo</div>
+                    </div>
+                </div>
+                <div class="connector"></div>
+            </div>
+
+            <!-- Nivel 6 -->
+            <div class="level">
+                <div class="level-title">📊 Cursos Nivel 3: Intervenciones</div>
+                <div class="nodes">
+                    <div class="node cursos" data-id="6">
+                        <span class="node-badge">CURSOS</span>
+                        <div class="node-title">Cursos sobre Intervenciones (Test 3)</div>
+                        <div class="node-count">📚 2 cursos</div>
+                        <div class="node-date">📅 Plazo: 15 Abril</div>
+                    </div>
+                </div>
+                <div class="connector"></div>
+            </div>
+
+            <!-- Nivel 7 -->
+            <div class="level">
+                <div class="nodes">
+                    <div class="node sesion" data-id="7">
+                        <span class="node-badge">SESIÓN VIRTUAL</span>
+                        <div class="node-title">Sesión Virtual de Aprendizaje III</div>
+                        <div class="node-date">📅 16 de Abril</div>
+                    </div>
+                </div>
+                <div class="connector"></div>
+            </div>
+
+            <!-- Nivel 8 -->
+            <div class="level" style="margin-bottom: 0;">
+                <div class="level-title"></div>
+                <div class="nodes">
+                    <div class="node workshop" data-id="8">
+                        <span class="node-badge">WORKSHOP II</span>
+                        <div class="node-title">WORKSHOP II Planificación de la FCP, Intervenciones y Herramientas de Monitoreo</div>
+                        <div class="node-date">📅 05 al 08 de Mayo</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leyenda -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-box cursos"></div>
+                    <span>Cursos</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box sesion"></div>
+                    <span>Sesiones Virtuales</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box workshop"></div>
+                    <span>Workshops</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 class="modal-title" id="modalTitle"></h2>
+            <div class="modal-body" id="modalBody"></div>
+            <button class="close-btn" onclick="closeModal()">Cerrar</button>
+        </div>
+    </div>
+
+    <script>
+        const coursesData = {
+            1: {
+                title: "Dashboard de Necesidades Principales y Satisfacción",
+                description: "Conjunto de 6 cursos enfocados en comprender y analizar las necesidades principales del programa y los niveles de satisfacción.",
+                details: [
+                    "Análisis de necesidades del programa",
+                    "Medición de satisfacción",
+                    "Indicadores clave de desempeño",
+                    "Dashboard de visualización",
+                    "Interpretación de datos",
+                    "Toma de decisiones basada en datos"
+                ],
+                plazo: "10 de Diciembre"
+            },
+            2: {
+                title: "Sesión Virtual de Aprendizaje",
+                description: "Sesión interactiva para reforzar los conocimientos adquiridos en los cursos del Dashboard de Necesidades.",
+                details: [
+                    "Revisión de conceptos clave",
+                    "Resolución de dudas",
+                    "Casos prácticos",
+                    "Planificación del ciclo",
+                    "Implementación de actividades",
+                    "Monitoreo continuo",
+                    "Evaluación de resultados",
+                    "Uso de aplicaciones móviles",
+                    "Gestión de recursos"
+                ],
+                plazo: "18 de Febrero"
+            },
+            4: {
+                title: "Sesión Virtual de Aprendizaje",
+                description: "Sesión práctica para consolidar el aprendizaje sobre el ciclo del programa y su aplicación.",
+                details: [
+                    "Simulación de casos reales",
+                    "Ejercicios prácticos",
+                    "Feedback personalizado",
+                    "Mejores prácticas"
+                ],
+                plazo: "19 de Febrero"
+            },
+            5: {
+                title: "Workshop I - Taller Práctico Intensivo",
+                description: "Taller presencial de 4 días donde aplicarás todos los conocimientos adquiridos en un entorno práctico y colaborativo.",
+                details: [
+                    "Trabajo en equipo",
+                    "Proyectos prácticos",
+                    "Mentorías personalizadas",
+                    "Networking con facilitadores",
+                    "Presentación de avances"
+                ],
+                plazo: "10 al 13 de Marzo"
+            },
+            6: {
+                title: "Cursos sobre Intervenciones",
+                description: "2 cursos especializados en diseño, implementación y evaluación de intervenciones efectivas.",
+                details: [
+                    "Diseño de intervenciones",
+                    "Estrategias de implementación",
+                    "Evaluación de impacto",
+                    "Ajustes y mejora continua"
+                ],
+                plazo: "15 de Abril"
+            },
+            7: {
+                title: "Sesión Virtual de Aprendizaje",
+                description: "Sesión enfocada en profundizar los conocimientos sobre intervenciones y resolver casos complejos.",
+                details: [
+                    "Análisis de intervenciones exitosas",
+                    "Desafíos comunes",
+                    "Estrategias de solución",
+                    "Q&A con expertos"
+                ],
+                plazo: "16 de Abril"
+            },
+            8: {
+                title: "Workshop II - Taller Práctico Intensivo",
+                description: "Taller final de 4 días para integrar todos los aprendizajes y desarrollar un proyecto completo de intervención.",
+                details: [
+                    "Proyecto final integrador",
+                    "Presentaciones grupales",
+                    "Evaluación por pares",
+                    "Certificación",
+                    "Plan de acción personal"
+                ],
+                plazo: "5 al 8 de Mayo"
+            }
+        };
+
+        const nodes = document.querySelectorAll('.node');
+        const modal = document.getElementById('modal');
+
+        nodes.forEach(node => {
+            node.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const data = coursesData[id];
+                
+                document.getElementById('modalTitle').textContent = data.title;
+                document.getElementById('modalBody').innerHTML = `
+                    <p><strong>Descripción:</strong></p>
+                    <p>${data.description}</p>
+                    <br>
+                    <p><strong>Contenido:</strong></p>
+                    <ul>
+                        ${data.details.map(detail => `<li>${detail}</li>`).join('')}
+                    </ul>
+                    <br>
+                    <p><strong>📅 Fecha/Plazo:</strong> ${data.plazo}</p>
+                `;
+                
+                modal.style.display = 'flex';
+            });
+        });
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
